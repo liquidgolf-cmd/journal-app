@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getRecordingFormat } from "@/lib/recording";
 
 const MAX_RECORDING_SECONDS = 10 * 60;
 const WARN_AT_SECONDS = 8 * 60;
@@ -20,6 +21,7 @@ export default function Recorder({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const secondsRef = useRef(0);
+  const formatRef = useRef(getRecordingFormat());
 
   function clearTimer() {
     if (timerRef.current) {
@@ -40,15 +42,22 @@ export default function Recorder({
         `Recording is too large (${mb} MB). Try a shorter clip or type your note below.`
       );
     }
+    const { extension } = formatRef.current;
     const fd = new FormData();
-    fd.append("audio", blob, "recording.webm");
+    fd.append("audio", blob, `recording.${extension}`);
     const res = await fetch("/api/transcribe", {
       method: "POST",
       body: fd,
     });
-    const data = await res.json();
+    const raw = await res.text();
+    let data: { error?: string; text?: string } = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      throw new Error("Unexpected server response. Try again or type your note.");
+    }
     if (!res.ok) throw new Error(data.error || "Transcription failed");
-    onTranscript(data.text);
+    onTranscript(data.text || "");
   }
 
   async function start() {
@@ -56,7 +65,11 @@ export default function Recorder({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mr = new MediaRecorder(stream);
+      formatRef.current = getRecordingFormat();
+      const { mimeType } = formatRef.current;
+      const mr = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       chunksRef.current = [];
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -64,7 +77,17 @@ export default function Recorder({
       mr.onstop = async () => {
         stopTracks();
         clearTimer();
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blobType =
+          mr.mimeType || mimeType || chunksRef.current[0]?.type || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        if (blob.size === 0) {
+          setError(
+            "No audio was captured. Try again or type your note below."
+          );
+          setSeconds(0);
+          secondsRef.current = 0;
+          return;
+        }
         const hitLimit = secondsRef.current >= MAX_RECORDING_SECONDS;
         setBusy(true);
         try {
@@ -82,7 +105,7 @@ export default function Recorder({
         }
       };
       mediaRecorderRef.current = mr;
-      mr.start();
+      mr.start(1000);
       setRecording(true);
       setSeconds(0);
       secondsRef.current = 0;

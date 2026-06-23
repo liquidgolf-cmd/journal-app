@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
+import { extensionForMime } from "@/lib/recording";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+
+function uploadName(file: File): string {
+  if (file.name && file.name.includes(".")) return file.name;
+  const ext = extensionForMime(file.type || "");
+  return `recording.${ext}`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,10 +47,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const name = uploadName(file);
+    const type = file.type || `audio/${extensionForMime(name)}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    const upload = await toFile(buffer, file.name || "recording.webm", {
-      type: file.type || "audio/webm",
-    });
+    const upload = await toFile(buffer, name, { type });
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -64,12 +71,26 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ text });
-  } catch (err: any) {
-    console.error("Transcription failed:", err?.message || err);
+  } catch (err: unknown) {
+    const apiErr = err as {
+      status?: number;
+      message?: string;
+      error?: { message?: string };
+    };
     const message =
-      err?.error?.message ||
-      err?.message ||
+      apiErr?.error?.message ||
+      apiErr?.message ||
       "Transcription failed. Try again or type your note instead.";
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    console.error("Transcription failed:", message, {
+      status: apiErr?.status,
+    });
+
+    const status =
+      apiErr?.status && apiErr.status >= 400 && apiErr.status < 500
+        ? apiErr.status
+        : 500;
+
+    return NextResponse.json({ error: message }, { status });
   }
 }
