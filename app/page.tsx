@@ -19,6 +19,7 @@ export default function CapturePage() {
   const [headline, setHeadline] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const todaysPrompt = getTodaysPrompt();
@@ -28,11 +29,13 @@ export default function CapturePage() {
     setHeadline("");
     setTagsInput("");
     setStep("capture");
+    setAiNotice(null);
     setSaved(false);
   }
 
   async function goToReview() {
     if (!text.trim()) return;
+    setAiNotice(null);
     if (aiMode === "ai") {
       setGenerating(true);
       try {
@@ -42,11 +45,28 @@ export default function CapturePage() {
           body: JSON.stringify({ text, kind }),
         });
         const data = await res.json();
-        setHeadline(data.headline || "");
-        setTagsInput((data.tags || []).join(", "));
+        if (!res.ok) {
+          setAiNotice(
+            data.error ||
+              "AI couldn't generate a headline. Edit the fields below."
+          );
+          setHeadline(text.slice(0, 40));
+          setTagsInput(kind === "meeting" ? "meeting" : "");
+        } else {
+          setHeadline(data.headline || "");
+          setTagsInput((data.tags || []).join(", "));
+          if (data.fallback) {
+            setAiNotice(
+              "No API key on the server — using a simple headline instead."
+            );
+          }
+        }
       } catch {
+        setAiNotice(
+          "Couldn't reach the AI. Using your text as a starting headline."
+        );
         setHeadline(text.slice(0, 40));
-        setTagsInput(kind);
+        setTagsInput("");
       } finally {
         setGenerating(false);
       }
@@ -206,6 +226,11 @@ export default function CapturePage() {
 
       {step === "review" && (
         <div>
+          {aiNotice && (
+            <div className="mb-4 rounded-lg border border-amber/40 bg-amber/10 p-3 text-sm text-amberlight">
+              {aiNotice}
+            </div>
+          )}
           <p className="text-xs uppercase tracking-wide text-amberlight mb-2">
             {aiMode === "ai" ? "AI suggested — edit anything" : "Your entry"}
           </p>

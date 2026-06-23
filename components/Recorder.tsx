@@ -86,7 +86,21 @@ export default function Recorder({
           ? `Recording · ${mm}:${ss}`
           : "Tap to start recording"}
       </p>
-      {error && <p className="mt-2 text-sm text-red-400 text-center">{error}</p>}
+      {error && (
+        <div className="mt-4 w-full rounded-lg border border-red-400/40 bg-red-900/20 p-3 text-center">
+          <p className="text-sm text-red-300">{error}</p>
+          <p className="mt-1 text-xs text-[#8a8170]">
+            Tap the button to try again, or type or paste your note below.
+          </p>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="mt-2 text-xs text-[#8a8170] underline hover:text-paper"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 }
