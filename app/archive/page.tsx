@@ -6,6 +6,7 @@ import { getEntries, deleteEntry, allTags } from "@/lib/storage";
 import { Entry } from "@/lib/types";
 import EntryCard from "@/components/EntryCard";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import GranolaImport from "@/components/GranolaImport";
 
 export default function ArchivePage() {
   const pathname = usePathname();
@@ -64,6 +65,8 @@ export default function ArchivePage() {
       <p className="text-sm text-[#8a8170] mb-5">
         {entries.length} {entries.length === 1 ? "entry" : "entries"}
       </p>
+
+      <GranolaImport onImported={refreshEntries} />
 
       <input
         value={query}

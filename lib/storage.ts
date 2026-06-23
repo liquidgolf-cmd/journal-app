@@ -38,6 +38,26 @@ export function updateEntry(updated: Entry) {
   window.localStorage.setItem(KEY, JSON.stringify(entries));
 }
 
+export function importEntries(newEntries: Entry[]): number {
+  const existing = getEntries();
+  const seen = new Set(
+    existing.map((e) => e.granolaNoteId).filter(Boolean) as string[]
+  );
+  const toAdd = newEntries.filter(
+    (e) => !e.granolaNoteId || !seen.has(e.granolaNoteId)
+  );
+  if (toAdd.length === 0) return 0;
+  const merged = [...toAdd, ...existing];
+  window.localStorage.setItem(KEY, JSON.stringify(merged));
+  return toAdd.length;
+}
+
+export function getImportedGranolaNoteIds(): string[] {
+  return getEntries()
+    .map((e) => e.granolaNoteId)
+    .filter(Boolean) as string[];
+}
+
 export function allTags(entries: Entry[]): string[] {
   const set = new Set<string>();
   entries.forEach((e) => e.tags.forEach((t) => set.add(t)));

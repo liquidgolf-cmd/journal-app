@@ -87,6 +87,7 @@ export default function EntryDetailPage() {
       <div className="flex items-start justify-between gap-3 mb-1">
         <span className="text-xs uppercase tracking-wide text-amberlight">
           {date} · {entry.kind === "meeting" ? "Meeting" : "Journal"}
+          {entry.source === "granola" && " · Granola"}
         </span>
         <div className="flex gap-3 shrink-0">
           {!editing && (
@@ -110,6 +111,17 @@ export default function EntryDetailPage() {
         <p className="text-sm text-[#8a8170] italic mb-4">
           &ldquo;{entry.promptQuestion}&rdquo;
         </p>
+      )}
+
+      {entry.granolaWebUrl && (
+        <a
+          href={entry.granolaWebUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs text-amber hover:text-amberlight mb-4"
+        >
+          View in Granola ↗
+        </a>
       )}
 
       {editing ? (

@@ -19,6 +19,7 @@ export default function EntryCard({
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs uppercase tracking-wide text-[#7a6a4a]">
           {date} · {entry.kind === "meeting" ? "Meeting" : "Journal"}
+          {entry.source === "granola" && " · Granola"}
         </span>
         {onDelete && (
           <button
