@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { getEntries, deleteEntry, allTags } from "@/lib/storage";
 import { Entry } from "@/lib/types";
 import EntryCard from "@/components/EntryCard";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function ArchivePage() {
+  const pathname = usePathname();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | "journal" | "meeting">(
@@ -13,14 +16,33 @@ export default function ArchivePage() {
   );
   const [tagFilter, setTagFilter] = useState("all");
   const [view, setView] = useState<"grid" | "list">("list");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  function refreshEntries() {
+    setEntries(getEntries());
+  }
 
   useEffect(() => {
-    setEntries(getEntries());
+    refreshEntries();
+  }, [pathname]);
+
+  useEffect(() => {
+    function onFocus() {
+      refreshEntries();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  function handleDelete(id: string) {
-    deleteEntry(id);
-    setEntries(getEntries());
+  function handleDeleteRequest(id: string) {
+    setConfirmDeleteId(id);
+  }
+
+  function handleDeleteConfirm() {
+    if (!confirmDeleteId) return;
+    deleteEntry(confirmDeleteId);
+    setConfirmDeleteId(null);
+    refreshEntries();
   }
 
   const tags = useMemo(() => allTags(entries), [entries]);
@@ -105,11 +127,23 @@ export default function ArchivePage() {
         </p>
       )}
 
-      <div className={view === "grid" ? "grid grid-cols-2 gap-3" : ""}>
+      <div className={view === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : ""}>
         {filtered.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} onDelete={handleDelete} />
+          <EntryCard
+            key={entry.id}
+            entry={entry}
+            onDelete={handleDeleteRequest}
+          />
         ))}
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Remove this entry?"
+        message="This can't be undone. The entry will be deleted from this device."
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

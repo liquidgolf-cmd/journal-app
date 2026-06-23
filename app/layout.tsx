@@ -21,7 +21,7 @@ export default function RootLayout({
               Keep
             </div>
           </header>
-          <main className="flex-1 px-4 pb-24 max-w-2xl mx-auto w-full">
+          <main className="flex-1 px-4 pb-28 max-w-2xl mx-auto w-full">
             {children}
           </main>
           <NavBar />

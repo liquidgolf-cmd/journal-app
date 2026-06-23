@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { deleteEntry, getEntry, updateEntry } from "@/lib/storage";
 import { Entry } from "@/lib/types";
 
@@ -15,6 +16,7 @@ export default function EntryDetailPage() {
   const [tagsInput, setTagsInput] = useState("");
   const [rawText, setRawText] = useState("");
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const found = getEntry(id);
@@ -96,7 +98,7 @@ export default function EntryDetailPage() {
             </button>
           )}
           <button
-            onClick={handleDelete}
+            onClick={() => setConfirmDelete(true)}
             className="text-xs text-[#8a8170] hover:text-red-400"
           >
             Remove
@@ -169,6 +171,13 @@ export default function EntryDetailPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Remove this entry?"
+        message="This can't be undone. The entry will be deleted from this device."
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
