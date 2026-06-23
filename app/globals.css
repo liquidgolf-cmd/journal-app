@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #1A1A1A;
+  color: #F5EFE3;
+}
+
+::placeholder {
+  color: #8a8170;
+}
