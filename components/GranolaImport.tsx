@@ -66,11 +66,25 @@ export default function GranolaImport({ onImported }: { onImported: () => void }
           importedIds: getImportedGranolaNoteIds(),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Import failed");
+      const raw = await res.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(
+          res.status === 404
+            ? "Import endpoint not found. Production may need a redeploy."
+            : "Unexpected server response. Try again in a moment."
+        );
+      }
+      if (!res.ok) {
+        throw new Error(
+          (typeof data.error === "string" && data.error) || "Import failed"
+        );
+      }
 
       const added = importEntries((data.entries || []) as Entry[]);
-      if (data.syncedAt) {
+      if (typeof data.syncedAt === "string") {
         setGranolaLastSync(data.syncedAt);
         setLastSync(data.syncedAt);
       }
@@ -79,9 +93,11 @@ export default function GranolaImport({ onImported }: { onImported: () => void }
       if (added > 0) parts.push(`${added} new meeting${added === 1 ? "" : "s"} imported`);
       else parts.push("No new meetings to import");
       if (data.hasMore) {
-        parts.push(`${data.remaining} more available — import again`);
+        const remaining =
+          typeof data.remaining === "number" ? data.remaining : 0;
+        parts.push(`${remaining} more available — import again`);
       }
-      if (data.errors?.length) {
+      if (Array.isArray(data.errors) && data.errors.length) {
         parts.push(`${data.errors.length} note(s) skipped due to errors`);
       }
       setMessage(parts.join(". ") + ".");

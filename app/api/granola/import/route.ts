@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getGranolaNote,
+  GranolaApiError,
   granolaNoteToEntry,
   listGranolaNotes,
 } from "@/lib/granola";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_NOTES_PER_IMPORT = 25;
 
@@ -21,6 +25,13 @@ export async function POST(req: NextRequest) {
           error:
             "No Granola API key. Add one in Archive → Granola, or set GRANOLA_API_KEY on the server.",
         },
+        { status: 400 }
+      );
+    }
+
+    if (!apiKey.startsWith("grn_")) {
+      return NextResponse.json(
+        { error: "Invalid Granola API key format. Keys start with grn_." },
         { status: 400 }
       );
     }
@@ -68,6 +79,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("Granola import failed:", err?.message);
+    if (err instanceof GranolaApiError) {
+      const status = err.status >= 400 && err.status < 600 ? err.status : 502;
+      return NextResponse.json(
+        {
+          error: err.message,
+          code: err.code,
+        },
+        { status }
+      );
+    }
     return NextResponse.json(
       { error: err?.message || "Granola import failed" },
       { status: 500 }

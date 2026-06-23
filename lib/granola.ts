@@ -1,6 +1,20 @@
+import { randomUUID } from "crypto";
 import { Entry } from "./types";
 
 const GRANOLA_API = "https://public-api.granola.ai";
+const MAX_PAGES = 20;
+
+export class GranolaApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "GranolaApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 export interface GranolaTranscriptLine {
   speaker?: { source?: string; name?: string };
@@ -21,7 +35,7 @@ export interface GranolaNote {
 }
 
 export interface GranolaListResponse {
-  notes: { id: string; updated_at: string }[];
+  notes?: { id: string; updated_at: string }[];
   hasMore: boolean;
   cursor: string | null;
 }
@@ -60,7 +74,7 @@ export function granolaNoteToEntry(note: GranolaNote): Entry {
     "Imported from Granola (no summary or transcript available).";
 
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     createdAt: note.created_at,
     kind: "meeting",
     source: "granola",
@@ -88,7 +102,11 @@ export async function granolaFetch<T>(
         : typeof data?.error === "string"
         ? data.error
         : `Granola API error (${res.status})`;
-    throw new Error(message);
+    throw new GranolaApiError(
+      message,
+      res.status,
+      typeof data?.code === "string" ? data.code : undefined
+    );
   }
   return data as T;
 }
@@ -99,6 +117,7 @@ export async function listGranolaNotes(
 ): Promise<{ id: string; updated_at: string }[]> {
   const notes: { id: string; updated_at: string }[] = [];
   let cursor: string | null = null;
+  let pages = 0;
 
   do {
     const params = new URLSearchParams({ updated_after: updatedAfter });
@@ -107,9 +126,11 @@ export async function listGranolaNotes(
       apiKey,
       `/v1/notes?${params}`
     );
-    notes.push(...page.notes);
-    cursor = page.hasMore ? page.cursor : null;
-  } while (cursor);
+    notes.push(...(page.notes || []));
+    pages += 1;
+    if (!page.hasMore || !page.cursor || pages >= MAX_PAGES) break;
+    cursor = page.cursor;
+  } while (true);
 
   return notes;
 }
@@ -121,6 +142,6 @@ export async function getGranolaNote(
   const params = new URLSearchParams({ include: "transcript" });
   return granolaFetch<GranolaNote>(
     apiKey,
-    `/v1/notes/${noteId}?${params}`
+    `/v1/notes/${encodeURIComponent(noteId)}?${params}`
   );
 }
