@@ -14,7 +14,9 @@ export default function NavBar() {
     <nav className="fixed bottom-0 left-0 right-0 bg-[#241F14] border-t border-[#3a3324] flex justify-center">
       <div className="flex w-full max-w-2xl">
         {tabs.map((t) => {
-          const active = pathname === t.href;
+          const active =
+            pathname === t.href ||
+            (t.href === "/archive" && pathname.startsWith("/archive"));
           return (
             <Link
               key={t.href}

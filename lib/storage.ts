@@ -27,6 +27,17 @@ export function deleteEntry(id: string) {
   window.localStorage.setItem(KEY, JSON.stringify(entries));
 }
 
+export function getEntry(id: string): Entry | undefined {
+  return getEntries().find((e) => e.id === id);
+}
+
+export function updateEntry(updated: Entry) {
+  const entries = getEntries().map((e) =>
+    e.id === updated.id ? updated : e
+  );
+  window.localStorage.setItem(KEY, JSON.stringify(entries));
+}
+
 export function allTags(entries: Entry[]): string[] {
   const set = new Set<string>();
   entries.forEach((e) => e.tags.forEach((t) => set.add(t)));

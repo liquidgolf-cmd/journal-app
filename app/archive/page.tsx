@@ -99,7 +99,9 @@ export default function ArchivePage() {
 
       {filtered.length === 0 && (
         <p className="text-sm text-[#5e5746] text-center py-10">
-          Nothing here yet. Go capture something.
+          {entries.length === 0
+            ? "Nothing here yet. Go capture something."
+            : "No entries match your search or filters."}
         </p>
       )}
 

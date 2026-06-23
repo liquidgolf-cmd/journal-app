@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Entry } from "@/lib/types";
 
 export default function EntryCard({
@@ -21,15 +22,22 @@ export default function EntryCard({
         </span>
         {onDelete && (
           <button
-            onClick={() => onDelete(entry.id)}
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete(entry.id);
+            }}
             className="text-[#7a6a4a] text-xs hover:text-red-700"
           >
             Remove
           </button>
         )}
       </div>
-      <h3 className="font-serif text-xl mb-2">{entry.headline}</h3>
-      <p className="text-sm text-[#3a3326] mb-3 line-clamp-3">{entry.rawText}</p>
+      <Link href={`/archive/${entry.id}`} className="block group">
+        <h3 className="font-serif text-xl mb-2 group-hover:text-[#5a4a2a]">
+          {entry.headline}
+        </h3>
+        <p className="text-sm text-[#3a3326] mb-3 line-clamp-3">{entry.rawText}</p>
+      </Link>
       <div className="flex flex-wrap gap-2">
         {entry.tags.map((tag) => (
           <span
